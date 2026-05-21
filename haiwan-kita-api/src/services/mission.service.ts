@@ -2,6 +2,7 @@ import { prisma } from '../config/prisma';
 import { AppError } from '../utils/errorHandler';
 import { MissionQueryInput, JoinMissionInput, CreateMissionInput } from '../schemas/mission.schema';
 import { ProjectCategory, ProjectState } from '@prisma/client';
+import { generateProjectId, generateParticipantId } from '../utils/idGenerator';
 
 // ── Mission Service ─────────────────────────────────────────────
 
@@ -127,8 +128,10 @@ export async function joinMission(userId: string, input: JoinMissionInput) {
   if (existing) throw new AppError(409, 'You have already joined this mission.');
 
   // 5. Join + increment counter atomically
+  const participantId = await generateParticipantId(prisma);
+
   await prisma.$transaction([
-    prisma.projectParticipant.create({ data: { userId, projectId } }),
+    prisma.projectParticipant.create({ data: { id: participantId, userId, projectId } }),
     prisma.project.update({
       where: { id: projectId },
       data: { currentParticipants: { increment: 1 } },
@@ -180,8 +183,11 @@ export async function leaveMission(userId: string, projectId: string) {
 
 
 export async function createMission(userId: string, input: CreateMissionInput) {
+  const projectId = await generateProjectId(prisma);
+
   const project = await prisma.project.create({
     data: {
+      id: projectId,  // PRJ-XXXXX
       title: input.title,
       category: input.category as import('@prisma/client').ProjectCategory,
       startDate: new Date(input.startDate),

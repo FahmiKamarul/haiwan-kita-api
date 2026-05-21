@@ -4,6 +4,7 @@ import {
   updateLocation,
   getUserLocationHistory,
   getActiveStreamers,
+  getAllLatestLocations,
 } from '../services/location.service';
 import { successResponse } from '../utils/response';
 import { AppError } from '../utils/errorHandler';
@@ -44,5 +45,13 @@ export async function getProjectActiveStreamers(
 ): Promise<void> {
   const { projectId } = request.params;
   const data = await getActiveStreamers(projectId);
+  successResponse(reply, { streamers: data, count: data.length });
+}
+
+export async function getGlobalLatestLocations(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const data = await getAllLatestLocations();
   successResponse(reply, { streamers: data, count: data.length });
 }

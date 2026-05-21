@@ -4,6 +4,11 @@ import { AppError } from '../utils/errorHandler';
 import { RegisterInput, LoginInput } from '../schemas/auth.schema';
 import { Role } from '@prisma/client';
 import { FastifyInstance } from 'fastify';
+import {
+  generateUserId,
+  generateMemberProfileId,
+  generateVolunteerProfileId,
+} from '../utils/idGenerator';
 
 const SALT_ROUNDS = 12;
 const MEMBERSHIP_FEE_RM = 50;
@@ -25,10 +30,14 @@ export async function registerUser(
   // 2. Hash password
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
-  // 3. Create user + role-specific profile in a transaction
+  // 3. Generate prefixed sequential IDs before inserting
+  const userId = await generateUserId(prisma);
+
+  // 4. Create user + role-specific profile in a transaction
   const user = await prisma.$transaction(async (tx) => {
     const newUser = await tx.user.create({
       data: {
+        id: userId,  // USR-XXXXX
         name,
         email,
         passwordHash,
@@ -41,17 +50,24 @@ export async function registerUser(
       // Simulate payment: create MemberProfile with PENDING payment
       const membershipExpiry = new Date();
       membershipExpiry.setFullYear(membershipExpiry.getFullYear() + 1);
+      const memberProfileId = await generateMemberProfileId(tx);
 
       await tx.memberProfile.create({
         data: {
+          id: memberProfileId,  // MBP-XXXXX
           userId: newUser.id,
           paymentStatus: 'PENDING',
           membershipExpiry,
         },
       });
     } else if (role === 'VOLUNTEER') {
+      const volunteerProfileId = await generateVolunteerProfileId(tx);
+
       await tx.volunteerProfile.create({
-        data: { userId: newUser.id },
+        data: {
+          id: volunteerProfileId,  // VLP-XXXXX
+          userId: newUser.id,
+        },
       });
     }
 

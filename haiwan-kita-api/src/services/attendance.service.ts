@@ -4,6 +4,7 @@ import path from 'path';
 import { prisma } from '../config/prisma';
 import { AppError } from '../utils/errorHandler';
 import { VerifyAttendanceInput } from '../schemas/mission.schema';
+import { generateAttendanceId } from '../utils/idGenerator';
 
 // ── Attendance Service ───────────────────────────────────────────
 
@@ -29,9 +30,12 @@ export async function verifyAttendance(
   }
 
   // 3. Upsert attendance record
+  const attendanceId = await generateAttendanceId(prisma);
+
   const attendance = await prisma.projectAttendance.upsert({
     where: { userId_projectId: { userId: targetUserId, projectId } },
     create: {
+      id: attendanceId,  // ATT-XXXXX
       userId: targetUserId,
       projectId,
       status: 'VERIFIED',

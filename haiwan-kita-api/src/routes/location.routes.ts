@@ -3,6 +3,7 @@ import {
   postLocationUpdate,
   getLocationHistory,
   getProjectActiveStreamers,
+  getGlobalLatestLocations,
 } from '../controllers/location.controller';
 import { authenticate, requireRole } from '../middlewares/auth.middleware';
 
@@ -23,5 +24,11 @@ export async function locationRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/project/:projectId/streamers', {
     preHandler: [authenticate, requireRole('ADMIN')],
     handler: getProjectActiveStreamers,
+  });
+
+  // GET /api/v1/location/latest — Admin only
+  fastify.get('/latest', {
+    preHandler: [authenticate, requireRole('ADMIN')],
+    handler: getGlobalLatestLocations,
   });
 }

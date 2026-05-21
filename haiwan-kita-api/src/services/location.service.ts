@@ -2,6 +2,7 @@ import { Server as SocketServer } from 'socket.io';
 import { prisma } from '../config/prisma';
 import { AppError } from '../utils/errorHandler';
 import { LocationUpdateInput } from '../schemas/location.schema';
+import { generateLocationId } from '../utils/idGenerator';
 
 let io: SocketServer | null = null;
 
@@ -23,18 +24,48 @@ export async function updateLocation(userId: string, input: LocationUpdateInput)
   }
 
   // 2. Persist GPS record
-  const location = await prisma.location.create({
-    data: {
-      userId,
-      projectId,
-      latitude,
-      longitude,
-      accuracy,
-      altitude,
-      speed,
-      isStreaming,
-    },
-  });
+  let location;
+  if (projectId) {
+    // Update existing location record for this user in this project to avoid DB bloat
+    const existing = await prisma.location.findFirst({
+      where: { userId, projectId },
+      orderBy: { timestamp: 'desc' },
+    });
+
+    if (existing) {
+      location = await prisma.location.update({
+        where: { id: existing.id },
+        data: {
+          latitude,
+          longitude,
+          accuracy,
+          altitude,
+          speed,
+          isStreaming,
+          timestamp: new Date(),
+        },
+      });
+    }
+  }
+
+  // If no existing record or no projectId provided, create a new one
+  if (!location) {
+    const locationId = await generateLocationId(prisma);
+
+    location = await prisma.location.create({
+      data: {
+        id: locationId,  // LOC-XXXXX
+        userId,
+        projectId,
+        latitude,
+        longitude,
+        accuracy,
+        altitude,
+        speed,
+        isStreaming,
+      },
+    });
+  }
 
   // 3. Emit real-time event to Admin Portal via Socket.io
   if (io) {
@@ -100,4 +131,25 @@ export async function getActiveStreamers(projectId: string) {
       user: { select: { id: true, name: true, avatarUrl: true } },
     },
   });
+}
+
+export async function getAllLatestLocations() {
+  const data = await prisma.location.findMany({
+    orderBy: { timestamp: 'desc' },
+    distinct: ['userId'],
+    include: {
+      user: { select: { id: true, name: true, avatarUrl: true } },
+    },
+  });
+
+  return data.map((loc) => ({
+    locationId: loc.id,
+    userId: loc.userId,
+    name: loc.user?.name,
+    latitude: loc.latitude,
+    longitude: loc.longitude,
+    accuracy: loc.accuracy,
+    isStreaming: loc.isStreaming,
+    timestamp: loc.timestamp,
+  }));
 }
