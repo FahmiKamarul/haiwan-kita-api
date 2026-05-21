@@ -15,12 +15,12 @@ export const missionQuerySchema = z.object({
 });
 
 export const joinMissionSchema = z.object({
-  projectId: z.string().cuid('Invalid project ID'),
+  projectId: z.string().min(1, 'Project ID is required'),
 });
 
 export const verifyAttendanceSchema = z.object({
-  projectId: z.string().cuid('Invalid project ID'),
-  userId: z.string().cuid('Invalid user ID').optional(),
+  projectId: z.string().min(1, 'Project ID is required'),
+  userId: z.string().min(1, 'User ID is required').optional(),
   notes: z.string().max(500).optional(),
 });
 
