@@ -1,0 +1,18 @@
+# =============================================================================
+#  .dockerignore — Keep the build context small and clean
+# =============================================================================
+
+node_modules
+dist
+npm-debug.log*
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+*.md
+certificates/
+.vscode
+.idea
+docker-compose*.yml
+Dockerfile

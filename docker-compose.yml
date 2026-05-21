@@ -1,0 +1,109 @@
+# =============================================================================
+#  Haiwan Kita — Docker Compose (Production)
+# =============================================================================
+#  Services:
+#    1. api        – Fastify API server (Node 20)
+#    2. mysql      – MySQL 8.0 database
+#    3. phpmyadmin – Web-based database manager
+#
+#  Networks:
+#    - backend     – API ↔ MySQL (isolated, no external exposure)
+#    - db-admin    – phpMyAdmin ↔ MySQL (isolated, no external exposure)
+#
+#  The API and phpMyAdmin each connect to MySQL over private networks.
+#  Only the API port (3000) and phpMyAdmin port (8080) are exposed to the host.
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  #  MySQL 8.0
+  # ---------------------------------------------------------------------------
+  mysql:
+    image: mysql:8.0
+    container_name: haiwan-kita-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-StrongR00tP@ss!}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-haiwan_kita}
+      MYSQL_USER: ${MYSQL_USER:-haiwan_app}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-H@iwan_Secr3t!}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports: []                # NOT exposed to host — only accessible via internal networks
+    networks:
+      - backend
+      - db-admin
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-StrongR00tP@ss!}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  #  Haiwan Kita API (Fastify + Prisma)
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: haiwan-kita-api
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 0.0.0.0
+      DATABASE_URL: mysql://${MYSQL_USER:-haiwan_app}:${MYSQL_PASSWORD:-H@iwan_Secr3t!}@mysql:3306/${MYSQL_DATABASE:-haiwan_kita}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+    ports:
+      - "${API_PORT:-3000}:3000"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>{if(!r.ok)throw new Error();process.exit(0)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ---------------------------------------------------------------------------
+  #  phpMyAdmin
+  # ---------------------------------------------------------------------------
+  phpmyadmin:
+    image: phpmyadmin:5
+    container_name: haiwan-kita-phpmyadmin
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD:-StrongR00tP@ss!}
+      UPLOAD_LIMIT: 64M
+    ports:
+      - "${PMA_PORT:-8080}:80"
+    networks:
+      - db-admin
+
+# =============================================================================
+#  Networks (isolated)
+# =============================================================================
+networks:
+  backend:
+    driver: bridge
+  db-admin:
+    driver: bridge
+
+# =============================================================================
+#  Volumes (persistent data)
+# =============================================================================
+volumes:
+  mysql_data:
+    driver: local
