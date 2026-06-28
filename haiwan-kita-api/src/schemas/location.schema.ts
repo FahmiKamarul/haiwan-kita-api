@@ -14,7 +14,7 @@ export const locationUpdateSchema = z.object({
   accuracy: z.number().positive().optional(),
   altitude: z.number().optional(),
   speed: z.number().min(0).optional(),
-  projectId: z.string().cuid('Invalid project ID').optional(),
+  projectId: z.string().min(1, 'Project ID is required').optional(),
   isStreaming: z.boolean().default(true),
 });
 

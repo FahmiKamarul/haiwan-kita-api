@@ -3,6 +3,9 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
+import fastifyStatic from '@fastify/static';
+import path from 'path';
+import fs from 'fs';
 import { config } from './config';
 import { errorHandler } from './utils/errorHandler';
 import { authRoutes } from './routes/auth.routes';
@@ -59,6 +62,17 @@ export async function buildApp(): Promise<FastifyInstance> {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
   }));
+
+  // ── Static Files ──────────────────────────────────────────────
+  const certDir = path.join(process.cwd(), 'certificates');
+  if (!fs.existsSync(certDir)) {
+    fs.mkdirSync(certDir, { recursive: true });
+  }
+  
+  await fastify.register(fastifyStatic, {
+    root: certDir,
+    prefix: '/certificates/',
+  });
 
   // ── Routes ────────────────────────────────────────────────────
   fastify.register(authRoutes, { prefix: '/auth' });

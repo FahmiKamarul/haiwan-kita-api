@@ -61,7 +61,7 @@ services:
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
     ports:
-      - "${API_PORT:-3000}:3000"
+      - "127.0.0.1:${API_PORT:-3000}:3000"
     networks:
       - backend
     healthcheck:
@@ -88,7 +88,7 @@ services:
       PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD:-StrongR00tP@ss!}
       UPLOAD_LIMIT: 64M
     ports:
-      - "${PMA_PORT:-8080}:80"
+      - "127.0.0.1:${PMA_PORT:-8080}:80"
     networks:
       - db-admin
 

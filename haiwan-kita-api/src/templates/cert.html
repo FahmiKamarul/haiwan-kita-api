@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate of Appreciation - SAFM</title>
+    <style>
+        /* Setup page dimensions for printing (A4 Landscape) */
+        @page {
+            size: A4 landscape;
+            margin: 0;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            -webkit-print-color-adjust: exact;
+        }
+
+        /* Container designed to fit perfectly on an A4 sheet */
+        .certificate-container {
+            width: 297mm;
+            height: 210mm;
+            box-sizing: border-box;
+            background-color: #ffffff;
+            padding: 15mm;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 20px auto;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+
+        /* Outer Certificate Border */
+        .outer-border {
+            border: 6px double #c5a059; /* Gold accent */
+            width: 100%;
+            height: 100%;
+            padding: 10mm 15mm;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            text-align: center;
+            background: radial-gradient(circle, rgba(255,255,255,1) 70%, rgba(250,248,242,1) 100%);
+        }
+
+        /* Header Style & Logo Alignment */
+        .header {
+            margin-top: 2mm;
+        }
+
+        .logo {
+            max-width: 180px;
+            height: auto;
+            margin-bottom: 12px;
+        }
+        
+        .org-name-my {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0;
+        }
+
+        .org-name-en {
+            font-size: 14px;
+            color: #7f8c8d;
+            font-style: italic;
+            margin: 4px 0 10px 0;
+        }
+
+        .main-title {
+            font-size: 38px;
+            color: #c5a059;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin: 8px 0;
+            font-weight: normal;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #555;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        /* Content Styles */
+        .volunteer-name {
+            font-size: 32px;
+            font-weight: bold;
+            color: #1a252f;
+            border-bottom: 2px solid #c5a059;
+            padding-bottom: 5px;
+            display: inline-block;
+            min-width: 320px;
+            margin: 10px 0;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .appreciation-text {
+            font-size: 15px;
+            color: #555;
+            line-height: 1.6;
+            max-width: 780px;
+            margin: 10px auto;
+        }
+
+        .highlight {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+
+        /* Footer / Signatures Area */
+        .footer-section {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 0 30px;
+            box-sizing: border-box;
+            margin-top: 5mm;
+        }
+
+        .signature-block {
+            width: 250px;
+            text-align: center;
+        }
+
+        /* Dynamic handwritten font signature placeholder */
+        .signature-placeholder {
+            font-family: 'Brush Script MT', 'Comic Sans MS', cursive;
+            font-size: 32px;
+            color: #1a365d;
+            height: 45px;
+            line-height: 45px;
+            margin-bottom: 2px;
+            transform: rotate(-2deg);
+            user-select: none;
+        }
+
+        .line {
+            border-top: 1px solid #7f8c8d;
+            margin-bottom: 6px;
+        }
+
+        .label {
+            font-size: 11px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            line-height: 1.4;
+        }
+
+        .date-value {
+            font-size: 14px;
+            color: #2c3e50;
+            font-weight: bold;
+            height: 45px;
+            line-height: 60px; /* Aligns with script baseline */
+            margin-bottom: 2px;
+        }
+
+        .signatory-title {
+            font-size: 11px;
+            color: #2c3e50;
+            font-weight: bold;
+            margin-top: 2px;
+        }
+
+        .cert-id {
+            font-size: 11px;
+            color: #95a5a6;
+            font-family: monospace;
+            margin-bottom: 5px;
+        }
+
+        /* Clean print engine properties */
+        @media print {
+            body {
+                background-color: #fff;
+            }
+            .certificate-container {
+                margin: 0;
+                box-shadow: none;
+                page-break-after: always;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="certificate-container">
+        <div class="outer-border">
+            
+            <!-- Header section containing organization logo and names -->
+            <div class="header">
+                <img class="logo" src="https://www.animal.org.my/wp-content/uploads/2020/08/persatuan-haiwan-terbiar-malaysia-stray-animal-feeders-of-malaysia-safm-logo-final.png" alt="SAFM Logo">
+                <p class="org-name-my">Persatuan Haiwan Terbiar Malaysia</p>
+                <p class="org-name-en">Stray Animal Feeders of Malaysia (SAFM)</p>
+                <h1 class="main-title">Certificate of Appreciation</h1>
+                <p class="subtitle">THIS CERTIFICATE IS PROUDLY PRESENTED TO</p>
+            </div>
+
+            <!-- Recipient details and reason for the award -->
+            <div class="content">
+                <div class="volunteer-name">{{ VOLUNTEER_NAME }}</div>
+                <p class="appreciation-text">
+                    In recognition of your outstanding dedication, compassion, and invaluable contribution as a volunteer during the 
+                    <span class="highlight">"{{ PROGRAM_NAME }}"</span> initiative. 
+                    Your selfless efforts in promoting stray animal welfare, community street feeding, and supporting animal protection initiatives under the Akta Kebajikan Haiwan 2015 have made a lasting difference in local communities.
+                </p>
+            </div>
+
+            <!-- Signatures, Date, and ID validation at the bottom -->
+            <div class="footer-section">
+                <div class="signature-block">
+                    <div class="date-value">{{ DATE_ISSUED }}</div>
+                    <div class="line"></div>
+                    <div class="label">Date Issued</div>
+                </div>
+                
+                <div class="cert-id">
+                    ID: {{ CERTIFICATE_ID }}
+                </div>
+
+                <div class="signature-block">
+                    <div class="signature-placeholder">Kalaivanan</div> 
+                    <div class="line"></div>
+                    <div class="label">Mr. Kalaivanan Ravichandran</div>
+                    <div class="signatory-title">President, SAFM</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>
