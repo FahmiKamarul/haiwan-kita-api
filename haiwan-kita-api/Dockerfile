@@ -47,22 +47,13 @@ FROM node:20-alpine AS production
 WORKDIR /app
 
 # Install native build tools for bcrypt compilation + openssl for Prisma engine
-# Also install Chromium and its dependencies for Puppeteer HTML-to-PDF rendering
 RUN apk add --no-cache \
       python3 \
       make \
       g++ \
-      openssl \
-      chromium \
-      nss \
-      freetype \
-      freetype-dev \
-      harfbuzz \
-      ca-certificates \
-      ttf-freefont
+      openssl
 
-ENV PUPPETEER_SKIP_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 # Copy only production dependency manifests & install
 COPY package.json package-lock.json ./

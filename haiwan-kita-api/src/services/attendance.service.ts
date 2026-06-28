@@ -185,11 +185,28 @@ async function generatePdf(outputPath: string, data: CertData): Promise<void> {
   htmlContent = htmlContent.replace(/{{ DATE_ISSUED }}/g, data.issuedDate);
   htmlContent = htmlContent.replace(/{{ CERTIFICATE_ID }}/g, data.certificateId);
 
-  // Launch Puppeteer (in Docker it needs specific flags to run smoothly)
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  });
+  let browser;
+  if (process.env.NODE_ENV === 'production') {
+    // Dynamic import to avoid loading sparticuz in environments where it might cause issues if not needed
+    const chromium = require('@sparticuz/chromium');
+    const puppeteerCore = require('puppeteer-core');
+    
+    // Set graphic backend to swiftshader to avoid some GPU dependencies
+    chromium.setGraphicsMode = false;
+    
+    browser = await puppeteerCore.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+      ignoreHTTPSErrors: true,
+    });
+  } else {
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
+  }
 
   try {
     const page = await browser.newPage();
