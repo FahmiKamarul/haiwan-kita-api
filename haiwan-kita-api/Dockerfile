@@ -18,7 +18,7 @@ RUN apk add --no-cache python3 make g++
 COPY package.json package-lock.json ./
 
 # Install every dependency (devDependencies are needed for the build stage)
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 RUN npm ci
 
 # Copy Prisma schema & generate the client
@@ -61,6 +61,9 @@ RUN apk add --no-cache \
       ca-certificates \
       ttf-freefont
 
+ENV PUPPETEER_SKIP_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
 # Copy only production dependency manifests & install
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
@@ -91,8 +94,6 @@ USER appuser
 #  Runtime
 # ---------------------------------------------------------------------------
 ENV NODE_ENV=production
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 EXPOSE 3000
 
 # Healthcheck — ping the Fastify server
