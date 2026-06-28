@@ -1,89 +1,35 @@
 # =============================================================================
-#  Haiwan Kita API — Multi-Stage Production Dockerfile
+#  Haiwan Kita API — Lean Single-Stage Dockerfile
 # =============================================================================
-#  Stack: Node 20 · TypeScript · Fastify · Prisma · MySQL
-# =============================================================================
-
-# ---------------------------------------------------------------------------
-#  Stage 1 — Install ALL dependencies (dev + prod) & generate Prisma client
-# ---------------------------------------------------------------------------
-FROM node:20-alpine AS deps
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Install native build tools required by bcrypt
-RUN apk add --no-cache python3 make g++
+# Install native tools (openssl for prisma, python/make/g++ for bcrypt)
+RUN apk add --no-cache openssl python3 make g++
 
-# Copy dependency manifests first (maximise Docker layer cache)
-COPY package.json package-lock.json ./
+# Copy everything
+COPY . .
 
-# Install every dependency (devDependencies are needed for the build stage)
+# All-in-one build step to prevent Docker from storing large intermediate layers
+# 1. Install all deps (PUPPETEER_SKIP_DOWNLOAD=true prevents 1GB chromium download)
+# 2. Generate Prisma client
+# 3. Compile TS to JS
+# 4. Prune devDependencies (including puppeteer, typescript) to shrink image
+# 5. Clean npm cache
+# 6. Remove native build tools
 ENV PUPPETEER_SKIP_DOWNLOAD=true
-RUN npm ci
+RUN npm ci && \
+    npx prisma generate && \
+    npm run build && \
+    npm prune --omit=dev && \
+    npm cache clean --force && \
+    apk del python3 make g++
 
-# Copy Prisma schema & generate the client
-COPY prisma ./prisma
-RUN npx prisma generate
-
-# ---------------------------------------------------------------------------
-#  Stage 2 — Build the TypeScript source into JavaScript
-# ---------------------------------------------------------------------------
-FROM deps AS builder
-
-WORKDIR /app
-
-# Copy the full source tree
-COPY tsconfig.json ./
-COPY src ./src
-
-# Compile TS → JS into /app/dist
-RUN npm run build
-
-# ---------------------------------------------------------------------------
-#  Stage 3 — Lean production image
-# ---------------------------------------------------------------------------
-FROM node:20-alpine AS production
-
-WORKDIR /app
-
-# Install native build tools for bcrypt compilation + openssl for Prisma engine
-RUN apk add --no-cache \
-      python3 \
-      make \
-      g++ \
-      openssl
-
-ENV PUPPETEER_SKIP_DOWNLOAD=true
-
-# Copy only production dependency manifests & install
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
-
-# Install Prisma CLI globally (it's a devDep, but we need it for migrations)
-RUN npm install -g prisma@5
-
-# Copy the Prisma schema (needed for generate + migrations)
-COPY prisma ./prisma
-
-# Generate the Prisma Client inside this stage so the query engine
-# binary matches the production Alpine's native libraries
-RUN prisma generate
-
-# Copy compiled JS from the builder stage
-COPY --from=builder /app/dist ./dist
-
-# Remove build toolchain to slim down the image (keep openssl — Prisma needs it)
-RUN apk del python3 make g++
-
-# ---------------------------------------------------------------------------
-#  Security — run as a non-root user
-# ---------------------------------------------------------------------------
+# Security — run as a non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 
-# ---------------------------------------------------------------------------
-#  Runtime
-# ---------------------------------------------------------------------------
 ENV NODE_ENV=production
 EXPOSE 3000
 
