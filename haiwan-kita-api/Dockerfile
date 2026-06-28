@@ -28,6 +28,7 @@ RUN npm ci && \
 
 # Security — run as a non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN mkdir -p /app/certificates && chown -R appuser:appgroup /app/certificates
 USER appuser
 
 ENV NODE_ENV=production
