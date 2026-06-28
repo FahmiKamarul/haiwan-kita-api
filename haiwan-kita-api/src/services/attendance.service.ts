@@ -1,4 +1,3 @@
-import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 import { prisma } from '../config/prisma';
@@ -202,6 +201,7 @@ async function generatePdf(outputPath: string, data: CertData): Promise<void> {
       ignoreHTTPSErrors: true,
     });
   } else {
+    const puppeteer = require('puppeteer');
     browser = await puppeteer.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
