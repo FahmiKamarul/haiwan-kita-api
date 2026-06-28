@@ -18,6 +18,7 @@ RUN apk add --no-cache python3 make g++
 COPY package.json package-lock.json ./
 
 # Install every dependency (devDependencies are needed for the build stage)
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 RUN npm ci
 
 # Copy Prisma schema & generate the client
