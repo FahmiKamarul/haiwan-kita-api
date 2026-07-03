@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import { prisma } from '../config/prisma';
 import { AppError } from '../utils/errorHandler';
-import { RegisterInput, LoginInput } from '../schemas/auth.schema';
+import { RegisterInput, LoginInput, UpdateProfileInput, UpdatePasswordInput } from '../schemas/auth.schema';
 import { Role } from '@prisma/client';
 import { FastifyInstance } from 'fastify';
 import {
@@ -187,4 +187,83 @@ export async function processMemberPayment(userId: string) {
     membershipExpiry: updated.membershipExpiry,
     message: `RM${MEMBERSHIP_FEE_RM} membership fee paid successfully. Welcome to Haiwan Kita!`,
   };
+}
+
+export async function updateUserProfile(userId: string, input: UpdateProfileInput) {
+  const { name, phone, skills } = input;
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    throw new AppError(404, 'User not found.');
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: userId },
+      data: {
+        ...(name && { name }),
+        ...(phone !== undefined && { phone }),
+      },
+    });
+
+    if (skills !== undefined && user.role === 'VOLUNTEER') {
+      await tx.volunteerProfile.update({
+        where: { userId },
+        data: { skills },
+      });
+    }
+  });
+
+  // Re-fetch volunteerProfile to get the updated skills
+  const finalUser = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      memberProfile: true,
+      volunteerProfile: true,
+    },
+  });
+
+  return {
+    id: finalUser!.id,
+    name: finalUser!.name,
+    email: finalUser!.email,
+    role: finalUser!.role,
+    phone: finalUser!.phone,
+    avatarUrl: finalUser!.avatarUrl,
+    memberProfile: finalUser!.memberProfile
+      ? {
+          paymentStatus: finalUser!.memberProfile.paymentStatus,
+          membershipExpiry: finalUser!.memberProfile.membershipExpiry,
+        }
+      : null,
+    volunteerProfile: finalUser!.volunteerProfile
+      ? {
+          totalMissions: finalUser!.volunteerProfile.totalMissions,
+          skills: finalUser!.volunteerProfile.skills,
+        }
+      : null,
+  };
+}
+
+export async function updateUserPassword(userId: string, input: UpdatePasswordInput) {
+  const { currentPassword, newPassword } = input;
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    throw new AppError(404, 'User not found.');
+  }
+
+  const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!isMatch) {
+    throw new AppError(400, 'Current password is incorrect.');
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash },
+  });
+
+  return { message: 'Password updated successfully.' };
 }

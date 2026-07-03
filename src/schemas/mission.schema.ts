@@ -3,9 +3,7 @@ import { z } from 'zod';
 // ── Mission / Project Schemas ────────────────────────────────────
 
 export const missionQuerySchema = z.object({
-  state: z
-    .enum(['UPCOMING', 'ACTIVE', 'COMPLETED', 'CANCELLED'])
-    .optional(),
+  state: z.string().optional(), // Can be single state or comma-separated: 'ACTIVE,UPCOMING'
   category: z
     .enum(['RESCUE', 'ADOPTION', 'MEDICAL', 'AWARENESS', 'FEEDING', 'OTHER'])
     .optional(),

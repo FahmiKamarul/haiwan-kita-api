@@ -3,6 +3,7 @@ import { AppError } from '../utils/errorHandler';
 import { MissionQueryInput, JoinMissionInput, CreateMissionInput } from '../schemas/mission.schema';
 import { ProjectCategory, ProjectState } from '@prisma/client';
 import { generateProjectId, generateParticipantId } from '../utils/idGenerator';
+import { emitSejarahUpdated, emitSejarahUpdatedToAll } from '../socket/emitter';
 
 // ── Mission Service ─────────────────────────────────────────────
 
@@ -11,7 +12,7 @@ export async function getMissions(query: MissionQueryInput) {
   const skip = (page - 1) * limit;
 
   const where = {
-    ...(state && { state: state as ProjectState }),
+    ...(state && { state: { in: state.split(',') as import('@prisma/client').ProjectState[] } }),
     ...(category && { category: category as ProjectCategory }),
     ...(search && {
       OR: [
@@ -138,6 +139,14 @@ export async function joinMission(userId: string, input: JoinMissionInput) {
     }),
   ]);
 
+  // Notify the volunteer's Sejarah tab in real time
+  emitSejarahUpdated(userId, {
+    event: 'joined',
+    projectId,
+    projectTitle: project.title,
+    timestamp: new Date().toISOString(),
+  });
+
   return { message: 'Successfully joined the mission!', projectId };
 }
 
@@ -178,6 +187,14 @@ export async function leaveMission(userId: string, projectId: string) {
     }),
   ]);
 
+  // Notify the volunteer's Sejarah tab in real time
+  emitSejarahUpdated(userId, {
+    event: 'left',
+    projectId,
+    projectTitle: project.title,
+    timestamp: new Date().toISOString(),
+  });
+
   return { message: 'Registration cancelled successfully.', projectId };
 }
 
@@ -217,7 +234,7 @@ export async function createMission(userId: string, input: CreateMissionInput) {
 export async function updateMissionState(
   adminId: string,
   projectId: string,
-  newState: 'ACTIVE' | 'CANCELLED',
+  newState: 'ACTIVE' | 'CANCELLED' | 'COMPLETED',
   reason?: string
 ) {
   const project = await prisma.project.findUnique({ where: { id: projectId } });
@@ -230,6 +247,21 @@ export async function updateMissionState(
     where: { id: projectId },
     data: { state: newState },
     select: { id: true, title: true, state: true },
+  });
+
+  // Notify ALL participants so their Sejarah tabs update live
+  const participants = await prisma.projectParticipant.findMany({
+    where: { projectId },
+    select: { userId: true },
+  });
+  const participantIds = participants.map((p) => p.userId);
+
+  emitSejarahUpdatedToAll(participantIds, {
+    event: 'mission_state_changed',
+    projectId: updated.id,
+    projectTitle: updated.title,
+    newState: updated.state,
+    timestamp: new Date().toISOString(),
   });
 
   return {
@@ -293,17 +325,46 @@ export async function getMyMissions(userId: string) {
           requiredVolunteers: true,
           currentParticipants: true,
           createdBy: { select: { id: true, name: true } },
+          attendances: {
+            where: { userId },
+            select: {
+              id: true,
+              status: true,
+              certificateStatus: true,
+              certificateUrl: true,
+              certificateGeneratedAt: true,
+              notes: true,
+            },
+          },
         },
       },
     },
     orderBy: { joinedAt: 'desc' },
   });
 
-  return participations.map((p) => ({
-    ...p.project,
-    joinedAt: p.joinedAt,
-    isFull: p.project.currentParticipants >= p.project.requiredVolunteers,
-    spotsRemaining: Math.max(0, p.project.requiredVolunteers - p.project.currentParticipants),
-    isJoined: true,
-  }));
+  return participations.map((p) => {
+    const attendance = p.project.attendances?.[0] ?? null;
+    return {
+      id: p.project.id,
+      title: p.project.title,
+      category: p.project.category,
+      state: p.project.state,
+      location: p.project.location,
+      startDate: p.project.startDate,
+      endDate: p.project.endDate,
+      requiredVolunteers: p.project.requiredVolunteers,
+      currentParticipants: p.project.currentParticipants,
+      createdBy: p.project.createdBy,
+      attendanceId: attendance?.id ?? null,
+      attendanceStatus: attendance?.status ?? null,
+      certificateStatus: attendance?.certificateStatus ?? null,
+      certificateUrl: attendance?.certificateUrl ?? null,
+      certificateGeneratedAt: attendance?.certificateGeneratedAt ?? null,
+      attendanceNotes: attendance?.notes ?? null,
+      joinedAt: p.joinedAt,
+      isFull: p.project.currentParticipants >= p.project.requiredVolunteers,
+      spotsRemaining: Math.max(0, p.project.requiredVolunteers - p.project.currentParticipants),
+      isJoined: true,
+    };
+  });
 }

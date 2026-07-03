@@ -134,3 +134,15 @@ export async function getMyMissionsHandler(
   const data = await getMyMissions(user.sub);
   successResponse(reply, data, 'Your missions retrieved successfully.');
 }
+
+// ── POST /api/v1/missions/:id/conclude — MEMBER concludes a project ─────────
+
+export async function concludeMissionHandler(
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = request.user;
+  if (!user) throw new AppError(401, 'Unauthorized');
+  const data = await updateMissionState(user.sub, request.params.id, 'COMPLETED');
+  successResponse(reply, data, data.message);
+}

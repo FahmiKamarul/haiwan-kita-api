@@ -1,10 +1,10 @@
-import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
 import { prisma } from '../config/prisma';
 import { AppError } from '../utils/errorHandler';
 import { VerifyAttendanceInput } from '../schemas/mission.schema';
 import { generateAttendanceId } from '../utils/idGenerator';
+import { emitSejarahUpdated } from '../socket/emitter';
 
 // ── Attendance Service ───────────────────────────────────────────
 
@@ -62,9 +62,20 @@ export async function verifyAttendance(
     .catch(console.error);
 
   // 5. Trigger background certificate generation (fire-and-forget)
-  generateCertificateBackground(attendance.id, targetUserId, projectId, project.title).catch(
-    console.error,
-  );
+  generateCertificateBackground(
+    attendance.id,
+    targetUserId,
+    projectId,
+    project.title,
+  ).catch(console.error);
+
+  // Notify the user's Sejarah tab immediately — attendance is now VERIFIED
+  emitSejarahUpdated(targetUserId, {
+    event: 'attendance_verified',
+    projectId,
+    projectTitle: project.title,
+    timestamp: new Date().toISOString(),
+  });
 
   return {
     attendanceId: attendance.id,
@@ -78,7 +89,7 @@ export async function verifyAttendance(
 
 // ── Certificate Generation (background job) ──────────────────────
 
-async function generateCertificateBackground(
+export async function generateCertificateBackground(
   attendanceId: string,
   userId: string,
   projectId: string,
@@ -108,6 +119,7 @@ async function generateCertificateBackground(
         month: 'long',
         day: 'numeric',
       }),
+      certificateId: attendanceId,
     });
 
     // Relative URL to serve the certificate
@@ -127,13 +139,25 @@ async function generateCertificateBackground(
       `[Certificate] Generated for ${user.name} (${attendanceId}): ${filePath}`,
     );
 
-    // In production: send push notification or email to user here
-    // notificationService.notifyUser(userId, 'certificate_ready', { certificateUrl });
+    // Notify the user's Sejarah tab — certificate is now ready to download
+    emitSejarahUpdated(userId, {
+      event: 'certificate_ready',
+      projectId,
+      certificateUrl,
+      timestamp: new Date().toISOString(),
+    });
   } catch (err) {
     console.error('[Certificate] Generation failed:', err);
     await prisma.projectAttendance.update({
       where: { id: attendanceId },
       data: { certificateStatus: 'FAILED' },
+    });
+
+    // Notify the user so the UI can show a failure state instead of spinning
+    emitSejarahUpdated(userId, {
+      event: 'certificate_failed',
+      projectId,
+      timestamp: new Date().toISOString(),
     });
   }
 }
@@ -142,83 +166,56 @@ interface CertData {
   recipientName: string;
   projectTitle: string;
   issuedDate: string;
+  certificateId: string;
 }
 
-function generatePdf(outputPath: string, data: CertData): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 60 });
-    const stream = fs.createWriteStream(outputPath);
-    doc.pipe(stream);
+async function generatePdf(outputPath: string, data: CertData): Promise<void> {
+  const templatePath = path.join(process.cwd(), 'src', 'templates', 'cert.html');
+  
+  if (!fs.existsSync(templatePath)) {
+    throw new Error(`Template not found at ${templatePath}`);
+  }
 
-    // Background color
-    doc.rect(0, 0, doc.page.width, doc.page.height).fill('#f8f5f0');
+  let htmlContent = fs.readFileSync(templatePath, 'utf8');
+  
+  // Replace placeholders with actual data
+  htmlContent = htmlContent.replace(/{{ VOLUNTEER_NAME }}/g, data.recipientName);
+  htmlContent = htmlContent.replace(/{{ PROGRAM_NAME }}/g, data.projectTitle);
+  htmlContent = htmlContent.replace(/{{ DATE_ISSUED }}/g, data.issuedDate);
+  htmlContent = htmlContent.replace(/{{ CERTIFICATE_ID }}/g, data.certificateId);
 
-    // Border
-    doc
-      .rect(30, 30, doc.page.width - 60, doc.page.height - 60)
-      .lineWidth(3)
-      .strokeColor('#2d6a4f')
-      .stroke();
+  let browser;
+  if (process.env.NODE_ENV === 'production') {
+    const puppeteerCore = require('puppeteer-core');
+    browser = await puppeteerCore.launch({
+      executablePath: '/usr/bin/chromium-browser',
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      headless: true,
+      ignoreHTTPSErrors: true,
+    });
+  } else {
+    const puppeteer = require('puppeteer');
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
+  }
 
-    // Title
-    doc
-      .fillColor('#1b4332')
-      .fontSize(36)
-      .font('Helvetica-Bold')
-      .text('SIJIL PENYERTAAN', { align: 'center' })
-      .moveDown(0.3);
+  try {
+    const page = await browser.newPage();
+    
+    // We set the HTML content directly
+    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
 
-    doc
-      .fontSize(14)
-      .font('Helvetica')
-      .fillColor('#555')
-      .text('Certificate of Participation', { align: 'center' })
-      .moveDown(1.5);
-
-    // Recipient
-    doc
-      .fontSize(18)
-      .fillColor('#333')
-      .font('Helvetica')
-      .text('Ini adalah untuk mengesahkan bahawa / This is to certify that', {
-        align: 'center',
-      })
-      .moveDown(0.5);
-
-    doc
-      .fontSize(28)
-      .font('Helvetica-Bold')
-      .fillColor('#1b4332')
-      .text(data.recipientName, { align: 'center' })
-      .moveDown(0.5);
-
-    doc
-      .fontSize(16)
-      .font('Helvetica')
-      .fillColor('#333')
-      .text(`telah menyertai misi / has participated in the mission:`, {
-        align: 'center',
-      })
-      .moveDown(0.3);
-
-    doc
-      .fontSize(22)
-      .font('Helvetica-Bold')
-      .fillColor('#2d6a4f')
-      .text(`"${data.projectTitle}"`, { align: 'center' })
-      .moveDown(1.5);
-
-    // Footer
-    doc
-      .fontSize(12)
-      .font('Helvetica')
-      .fillColor('#777')
-      .text(`Tarikh Dikeluarkan: ${data.issuedDate}`, { align: 'center' })
-      .moveDown(0.3)
-      .text('Haiwan Kita — Bersama Melindungi Mereka', { align: 'center' });
-
-    doc.end();
-    stream.on('finish', resolve);
-    stream.on('error', reject);
-  });
+    // Generate PDF matching the A4 Landscape defined in CSS
+    await page.pdf({
+      path: outputPath,
+      format: 'A4',
+      landscape: true,
+      printBackground: true,
+      margin: { top: '0', right: '0', bottom: '0', left: '0' },
+    });
+  } finally {
+    await browser.close();
+  }
 }

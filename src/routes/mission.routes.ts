@@ -8,6 +8,7 @@ import {
   createMissionHandler,
   approveMissionHandler,
   rejectMissionHandler,
+  concludeMissionHandler,
   getParticipantsHandler,
   getMyMissionsHandler,
 } from '../controllers/mission.controller';
@@ -20,10 +21,10 @@ export async function missionRoutes(fastify: FastifyInstance): Promise<void> {
     handler: listMissions,
   });
 
-  // GET /api/v1/missions/my-missions — VOLUNTEER: their own participated missions
+  // GET /api/v1/missions/my-missions — VOLUNTEER or MEMBER: their own participated missions
   // Must be registered BEFORE /:id to avoid being matched as a param
   fastify.get('/my-missions', {
-    preHandler: [authenticate, requireRole('VOLUNTEER')],
+    preHandler: [authenticate, requireRole('VOLUNTEER', 'MEMBER')],
     handler: getMyMissionsHandler,
   });
 
@@ -39,15 +40,15 @@ export async function missionRoutes(fastify: FastifyInstance): Promise<void> {
     handler: getParticipantsHandler,
   });
 
-  // POST /api/v1/missions/join — authenticated (Volunteer)
+  // POST /api/v1/missions/join — authenticated (Volunteer or Member)
   fastify.post('/join', {
-    preHandler: [authenticate, requireRole('VOLUNTEER')],
+    preHandler: [authenticate, requireRole('VOLUNTEER', 'MEMBER')],
     handler: join,
   });
 
-  // POST /api/v1/missions/leave — Volunteer cancels their registration
+  // POST /api/v1/missions/leave — Volunteer or Member cancels their registration
   fastify.post('/leave', {
-    preHandler: [authenticate, requireRole('VOLUNTEER')],
+    preHandler: [authenticate, requireRole('VOLUNTEER', 'MEMBER')],
     handler: leave,
   });
 
@@ -73,5 +74,11 @@ export async function missionRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.post('/:id/reject', {
     preHandler: [authenticate, requireRole('ADMIN')],
     handler: rejectMissionHandler,
+  });
+
+  // POST /api/v1/missions/:id/conclude — Member concludes → state COMPLETED
+  fastify.post('/:id/conclude', {
+    preHandler: [authenticate, requireRole('MEMBER')],
+    handler: concludeMissionHandler,
   });
 }

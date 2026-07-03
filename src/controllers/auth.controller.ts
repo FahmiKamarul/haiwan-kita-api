@@ -1,9 +1,11 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { registerSchema, loginSchema } from '../schemas/auth.schema';
+import { registerSchema, loginSchema, updateProfileSchema, updatePasswordSchema } from '../schemas/auth.schema';
 import {
   registerUser,
   loginUser,
   processMemberPayment,
+  updateUserProfile,
+  updateUserPassword,
 } from '../services/auth.service';
 import { successResponse } from '../utils/response';
 import { AppError } from '../utils/errorHandler';
@@ -52,4 +54,26 @@ export async function getMe(
     email: user.email,
     role: user.role,
   });
+}
+
+export async function updateProfile(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = request.user;
+  if (!user) throw new AppError(401, 'Unauthorized');
+  const input = updateProfileSchema.parse(request.body);
+  const data = await updateUserProfile(user.sub, input);
+  successResponse(reply, data, 'Profile updated successfully.');
+}
+
+export async function updatePassword(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = request.user;
+  if (!user) throw new AppError(401, 'Unauthorized');
+  const input = updatePasswordSchema.parse(request.body);
+  const data = await updateUserPassword(user.sub, input);
+  successResponse(reply, data, 'Password updated successfully.');
 }
