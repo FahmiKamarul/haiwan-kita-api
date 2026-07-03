@@ -87,6 +87,7 @@ export async function registerUser(
     email: user.email,
     role: user.role,
     phone: user.phone,
+    createdAt: user.createdAt,
     token,
   };
 
@@ -141,6 +142,7 @@ export async function loginUser(input: LoginInput, fastify: FastifyInstance) {
     role: user.role,
     phone: user.phone,
     avatarUrl: user.avatarUrl,
+    createdAt: user.createdAt,
     token,
     memberProfile: user.memberProfile
       ? {
@@ -230,6 +232,7 @@ export async function updateUserProfile(userId: string, input: UpdateProfileInpu
     role: finalUser!.role,
     phone: finalUser!.phone,
     avatarUrl: finalUser!.avatarUrl,
+    createdAt: finalUser!.createdAt,
     memberProfile: finalUser!.memberProfile
       ? {
           paymentStatus: finalUser!.memberProfile.paymentStatus,
@@ -266,4 +269,40 @@ export async function updateUserPassword(userId: string, input: UpdatePasswordIn
   });
 
   return { message: 'Password updated successfully.' };
+}
+
+export async function getCurrentUser(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      memberProfile: true,
+      volunteerProfile: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(404, 'User not found.');
+  }
+
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    phone: user.phone,
+    avatarUrl: user.avatarUrl,
+    createdAt: user.createdAt,
+    memberProfile: user.memberProfile
+      ? {
+          paymentStatus: user.memberProfile.paymentStatus,
+          membershipExpiry: user.memberProfile.membershipExpiry,
+        }
+      : null,
+    volunteerProfile: user.volunteerProfile
+      ? {
+          totalMissions: user.volunteerProfile.totalMissions,
+          skills: user.volunteerProfile.skills,
+        }
+      : null,
+  };
 }

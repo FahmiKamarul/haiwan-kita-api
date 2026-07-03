@@ -6,6 +6,7 @@ import {
   processMemberPayment,
   updateUserProfile,
   updateUserPassword,
+  getCurrentUser,
 } from '../services/auth.service';
 import { successResponse } from '../utils/response';
 import { AppError } from '../utils/errorHandler';
@@ -49,11 +50,9 @@ export async function getMe(
 ): Promise<void> {
   const user = request.user;
   if (!user) throw new AppError(401, 'Unauthorized');
-  successResponse(reply, {
-    id: user.sub,
-    email: user.email,
-    role: user.role,
-  });
+  
+  const data = await getCurrentUser(user.sub);
+  successResponse(reply, data);
 }
 
 export async function updateProfile(
