@@ -158,10 +158,17 @@ export async function loginUser(input: LoginInput, fastify: FastifyInstance) {
   };
 }
 
-// ── Simulated Payment Service ────────────────────────────────────
-export async function processMemberPayment(userId: string) {
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_mock', {
+  apiVersion: '2024-04-10', // Or whatever the latest version is
+});
+
+// ── Stripe Payment Service ───────────────────────────────────────
+export async function createPaymentIntent(userId: string) {
   const memberProfile = await prisma.memberProfile.findUnique({
     where: { userId },
+    include: { user: true },
   });
 
   if (!memberProfile) {
@@ -172,22 +179,20 @@ export async function processMemberPayment(userId: string) {
     throw new AppError(409, 'Membership fee has already been paid.');
   }
 
-  // Simulate payment gateway success
-  const updated = await prisma.memberProfile.update({
-    where: { userId },
-    data: {
-      paymentStatus: 'PAID',
-      amountPaid: MEMBERSHIP_FEE_RM,
-      paidAt: new Date(),
+  // Create a PaymentIntent with the order amount and currency
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: MEMBERSHIP_FEE_RM * 100, // Stripe expects amounts in cents/sen
+    currency: 'myr',
+    metadata: {
+      userId: userId, // Pass userId so webhook knows who paid
+      type: 'membership_fee',
     },
+    receipt_email: memberProfile.user.email,
   });
 
   return {
-    paymentStatus: updated.paymentStatus,
-    amountPaid: Number(updated.amountPaid),
-    paidAt: updated.paidAt,
-    membershipExpiry: updated.membershipExpiry,
-    message: `RM${MEMBERSHIP_FEE_RM} membership fee paid successfully. Welcome to Haiwan Kita!`,
+    clientSecret: paymentIntent.client_secret,
+    amount: MEMBERSHIP_FEE_RM,
   };
 }
 

@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { register, login, payMembership, getMe, updateProfile, updatePassword } from '../controllers/auth.controller';
+import { register, login, createPaymentIntent, stripeWebhook, getMe, updateProfile, updatePassword } from '../controllers/auth.controller';
 import { authenticate, requireRole } from '../middlewares/auth.middleware';
 
 export async function authRoutes(fastify: FastifyInstance): Promise<void> {
@@ -27,9 +27,15 @@ export async function authRoutes(fastify: FastifyInstance): Promise<void> {
     handler: updatePassword,
   });
 
-  // POST /auth/pay-membership — Member only
-  fastify.post('/pay-membership', {
+  // POST /auth/create-payment-intent — Member only
+  fastify.post('/create-payment-intent', {
     preHandler: [authenticate, requireRole('MEMBER')],
-    handler: payMembership,
+    handler: createPaymentIntent,
+  });
+
+  // POST /auth/webhook — Public (Stripe calls this)
+  fastify.post('/webhook', {
+    config: { rawBody: true },
+    handler: stripeWebhook,
   });
 }

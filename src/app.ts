@@ -9,6 +9,7 @@ import { authRoutes } from './routes/auth.routes';
 import { missionRoutes } from './routes/mission.routes';
 import { locationRoutes } from './routes/location.routes';
 import { userRoutes } from './routes/user.routes';
+import fastifyRawBody from 'fastify-raw-body';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const fastify = Fastify({
@@ -21,6 +22,14 @@ export async function buildApp(): Promise<FastifyInstance> {
     },
     // Enforce <10s request timeout
     connectionTimeout: 10000,
+  });
+
+  // ── Raw Body Parsing for Stripe Webhooks ──────────────
+  await fastify.register(fastifyRawBody, {
+    field: 'rawBody', // the raw payload will be available on request.rawBody
+    global: false,
+    encoding: 'utf8',
+    runFirst: true, // ensure it runs before normal parsers
   });
 
   // ── Security & CORS ───────────────────────────────────────────
