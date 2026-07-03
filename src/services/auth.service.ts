@@ -161,7 +161,7 @@ export async function loginUser(input: LoginInput, fastify: FastifyInstance) {
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_mock', {
-  apiVersion: '2024-04-10', // Or whatever the latest version is
+  apiVersion: '2026-06-24.dahlia' as any,
 });
 
 // ── Stripe Payment Service ───────────────────────────────────────
