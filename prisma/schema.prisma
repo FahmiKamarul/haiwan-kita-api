@@ -83,6 +83,7 @@ model User {
   attendances       ProjectAttendance[]
   projectsCreated   Project[]           @relation("ProjectCreator")
   projectsJoined    ProjectParticipant[]
+  reviewsGiven      MissionReview[]
 
   @@map("users")
 }
@@ -155,6 +156,7 @@ model Project {
   participants ProjectParticipant[]
   attendances  ProjectAttendance[]
   gpsLogs      Location[]
+  reviews      MissionReview[]
 
   @@map("projects")
 }
@@ -223,4 +225,26 @@ model ProjectAttendance {
 
   @@unique([userId, projectId])
   @@map("project_attendances")
+}
+
+// ------------------------------------------------------------------
+// Mission Reviews
+// ------------------------------------------------------------------
+
+model MissionReview {
+  id                  String   @id           // REV-XXXXX
+  userId              String
+  projectId           String
+  ratingManagement    Int      // 1-5
+  ratingSafety        Int      // 1-5
+  ratingImpact        Int      // 1-5
+  ratingFacility      Int      // 1-5
+  comment             String?  @db.Text
+  createdAt           DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+  @@map("mission_reviews")
 }
