@@ -12,6 +12,7 @@ import { userRoutes } from './routes/user.routes';
 import fastifyRawBody from 'fastify-raw-body';
 import path from 'path';
 import fastifyStatic from '@fastify/static';
+import { reviewRoutes } from './routes/review.routes';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const fastify = Fastify({
@@ -82,6 +83,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   fastify.register(missionRoutes, { prefix: '/api/v1/missions' });
   fastify.register(locationRoutes, { prefix: '/api/v1/location' });
   fastify.register(userRoutes, { prefix: '/api/v1/users' });
+  fastify.register(reviewRoutes, { prefix: '/api/v1' });
 
   // 404 handler
   fastify.setNotFoundHandler((request, reply) => {
