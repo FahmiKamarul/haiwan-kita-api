@@ -6,7 +6,7 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Install native tools (openssl for prisma, python/make/g++ for bcrypt)
-RUN apk add --no-cache openssl python3 make g++
+RUN apk add --no-cache openssl python3 make g++ chromium nss freetype harfbuzz ca-certificates
 
 # Copy everything
 COPY . .
