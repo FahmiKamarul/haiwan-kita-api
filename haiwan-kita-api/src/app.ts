@@ -12,6 +12,7 @@ import { authRoutes } from './routes/auth.routes';
 import { missionRoutes } from './routes/mission.routes';
 import { locationRoutes } from './routes/location.routes';
 import { userRoutes } from './routes/user.routes';
+import { reviewRoutes } from './routes/review.routes';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const fastify = Fastify({
@@ -79,6 +80,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   fastify.register(missionRoutes, { prefix: '/api/v1/missions' });
   fastify.register(locationRoutes, { prefix: '/api/v1/location' });
   fastify.register(userRoutes, { prefix: '/api/v1/users' });
+  fastify.register(reviewRoutes, { prefix: '/api/v1/missions' });
 
   // 404 handler
   fastify.setNotFoundHandler((request, reply) => {

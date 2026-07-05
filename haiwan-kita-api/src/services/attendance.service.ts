@@ -89,7 +89,7 @@ export async function verifyAttendance(
 
 // ── Certificate Generation (background job) ──────────────────────
 
-async function generateCertificateBackground(
+export async function generateCertificateBackground(
   attendanceId: string,
   userId: string,
   projectId: string,
@@ -186,18 +186,11 @@ async function generatePdf(outputPath: string, data: CertData): Promise<void> {
 
   let browser;
   if (process.env.NODE_ENV === 'production') {
-    // Dynamic import to avoid loading sparticuz in environments where it might cause issues if not needed
-    const chromium = require('@sparticuz/chromium');
     const puppeteerCore = require('puppeteer-core');
-    
-    // Set graphic backend to swiftshader to avoid some GPU dependencies
-    chromium.setGraphicsMode = false;
-    
     browser = await puppeteerCore.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
+      executablePath: '/usr/bin/chromium-browser',
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      headless: true,
       ignoreHTTPSErrors: true,
     });
   } else {
@@ -212,7 +205,7 @@ async function generatePdf(outputPath: string, data: CertData): Promise<void> {
     const page = await browser.newPage();
     
     // We set the HTML content directly
-    await page.setContent(htmlContent, { waitUntil: 'load' });
+    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
 
     // Generate PDF matching the A4 Landscape defined in CSS
     await page.pdf({

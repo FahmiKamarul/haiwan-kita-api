@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Certificate of Appreciation - SAFM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;700&family=Great+Vibes&display=swap" rel="stylesheet">
     <style>
         /* Setup page dimensions for printing (A4 Landscape) */
         @page {
@@ -15,7 +16,7 @@
             margin: 0;
             padding: 0;
             background-color: #f0f0f0;
-            font-family: 'Georgia', 'Times New Roman', serif;
+            font-family: 'Lora', 'Georgia', 'Times New Roman', serif;
             -webkit-print-color-adjust: exact;
         }
 
@@ -56,7 +57,7 @@
         }
 
         .logo {
-            max-width: 180px;
+            max-width: 140px;
             height: auto;
             margin-bottom: 12px;
         }
@@ -103,7 +104,7 @@
             display: inline-block;
             min-width: 320px;
             margin: 10px 0;
-            font-family: 'Arial', sans-serif;
+            font-family: 'Montserrat', 'Arial', sans-serif;
         }
 
         .appreciation-text {
@@ -137,7 +138,7 @@
 
         /* Dynamic handwritten font signature placeholder */
         .signature-placeholder {
-            font-family: 'Brush Script MT', 'Comic Sans MS', cursive;
+            font-family: 'Great Vibes', 'Brush Script MT', 'Comic Sans MS', cursive;
             font-size: 32px;
             color: #1a365d;
             height: 45px;
@@ -214,10 +215,9 @@
             <div class="content">
                 <div class="volunteer-name">{{ VOLUNTEER_NAME }}</div>
                 <p class="appreciation-text">
-                    In recognition of your outstanding dedication, compassion, and invaluable contribution as a volunteer during the 
-                    <span class="highlight">"{{ PROGRAM_NAME }}"</span> initiative. 
-                    Your selfless efforts in promoting stray animal welfare, community street feeding, and supporting animal protection initiatives under the Akta Kebajikan Haiwan 2015 have made a lasting difference in local communities.
-                </p>
+                    In recognition of your outstanding dedication, compassion, and invaluable contribution as a volunteer in
+                <div class="volunteer-name">{{ PROGRAM_NAME }}</div> 
+
             </div>
 
             <!-- Signatures, Date, and ID validation at the bottom -->
