@@ -10,6 +10,8 @@ import { missionRoutes } from './routes/mission.routes';
 import { locationRoutes } from './routes/location.routes';
 import { userRoutes } from './routes/user.routes';
 import fastifyRawBody from 'fastify-raw-body';
+import path from 'path';
+import fastifyStatic from '@fastify/static';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const fastify = Fastify({
@@ -68,6 +70,12 @@ export async function buildApp(): Promise<FastifyInstance> {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
   }));
+
+  // ── Static Files (Certificates) ─────────────────────────────
+  await fastify.register(fastifyStatic, {
+    root: path.join(__dirname, '../certificates'),
+    prefix: '/certificates/',
+  });
 
   // ── Routes ────────────────────────────────────────────────────
   fastify.register(authRoutes, { prefix: '/auth' });
