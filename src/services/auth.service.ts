@@ -289,6 +289,19 @@ export async function getCurrentUser(userId: string) {
     throw new AppError(404, 'User not found.');
   }
 
+  // Lazy check for membership expiry
+  if (user.role === 'MEMBER' && user.memberProfile) {
+    if (user.memberProfile.membershipExpiry && user.memberProfile.membershipExpiry < new Date()) {
+      if (user.memberProfile.paymentStatus === 'PAID') {
+        await prisma.memberProfile.update({
+          where: { userId },
+          data: { paymentStatus: 'PENDING' },
+        });
+        user.memberProfile.paymentStatus = 'PENDING';
+      }
+    }
+  }
+
   return {
     id: user.id,
     name: user.name,

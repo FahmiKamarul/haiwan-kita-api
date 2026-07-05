@@ -78,12 +78,21 @@ export async function stripeWebhook(
     if (userId) {
       // Update member status
       const { prisma } = require('../config/prisma');
+      const member = await prisma.memberProfile.findUnique({ where: { userId } });
+      
+      let newExpiry = new Date();
+      if (member?.membershipExpiry && member.membershipExpiry > new Date()) {
+        newExpiry = new Date(member.membershipExpiry);
+      }
+      newExpiry.setFullYear(newExpiry.getFullYear() + 1);
+
       await prisma.memberProfile.update({
         where: { userId },
         data: {
           paymentStatus: 'PAID',
-          amountPaid: paymentIntent.amount / 100, // convert back from cents
+          amountPaid: Number(member?.amountPaid || 0) + (paymentIntent.amount / 100),
           paidAt: new Date(),
+          membershipExpiry: newExpiry,
         },
       });
       request.log.info(`Membership activated for user ${userId}`);
