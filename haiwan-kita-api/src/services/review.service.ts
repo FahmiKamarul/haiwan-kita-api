@@ -65,7 +65,7 @@ export const reviewService = {
     const totalReviews = await prisma.missionReview.count();
     
     if (totalReviews === 0) {
-      return { totalReviews: 0, platformAverage: 0 };
+      return { totalReviews: 0, platformAverage: 0, recentComments: [] };
     }
     
     const aggregations = await prisma.missionReview.aggregate({
@@ -74,9 +74,22 @@ export const reviewService = {
       },
     });
 
+    const recentComments = await prisma.missionReview.findMany({
+      where: { 
+        comment: { not: null }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      include: {
+        user: { select: { name: true, avatarUrl: true } },
+        project: { select: { title: true } }
+      }
+    });
+
     return {
       totalReviews,
       platformAverage: aggregations._avg.overallRating || 0,
+      recentComments
     };
   }
 };
