@@ -64,6 +64,8 @@ services:
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
     ports:
       - "127.0.0.1:${API_PORT:-3000}:3000"
+    volumes:
+      - certificates-data:/app/certificates
     networks:
       - backend
     healthcheck:
@@ -108,4 +110,6 @@ networks:
 # =============================================================================
 volumes:
   mysql_data:
+    driver: local
+  certificates-data:
     driver: local
