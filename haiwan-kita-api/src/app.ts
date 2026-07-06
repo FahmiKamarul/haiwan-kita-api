@@ -80,7 +80,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   fastify.register(missionRoutes, { prefix: '/api/v1/missions' });
   fastify.register(locationRoutes, { prefix: '/api/v1/location' });
   fastify.register(userRoutes, { prefix: '/api/v1/users' });
-  fastify.register(reviewRoutes, { prefix: '/api/v1/missions' });
+  fastify.register(reviewRoutes, { prefix: '/api/v1/missions' }); // Force fix prefix
 
   // 404 handler
   fastify.setNotFoundHandler((request, reply) => {
