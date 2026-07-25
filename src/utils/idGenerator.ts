@@ -24,6 +24,7 @@ export const ID_PREFIX = {
   PROJECT_PARTICIPANT: 'PTP',
   LOCATION: 'LOC',
   PROJECT_ATTENDANCE: 'ATT',
+  MISSION_REVIEW: 'REV',
 } as const;
 
 export type IdPrefix = (typeof ID_PREFIX)[keyof typeof ID_PREFIX];
@@ -168,4 +169,8 @@ export async function generateMemberProfileId(prisma: PrismaClient | any): Promi
 
 export async function generateVolunteerProfileId(prisma: PrismaClient | any): Promise<string> {
   return generateNextId(prisma, 'volunteerProfile', ID_PREFIX.VOLUNTEER_PROFILE);
+}
+
+export async function generateReviewId(prisma: PrismaClient | any): Promise<string> {
+  return generateNextId(prisma, 'missionReview', ID_PREFIX.MISSION_REVIEW);
 }
